@@ -14,10 +14,10 @@ import (
 )
 
 type Manifest struct {
-	SchemaVersion int      `json:"schemaVersion"`
-	MediaType     string   `json:"mediaType"`
-	Config        *Layer   `json:"config"`
-	Layers        []*Layer `json:"layers"`
+	SchemaVersion int     `json:"schemaVersion"`
+	MediaType     string  `json:"mediaType"`
+	Config        Layer   `json:"config"`
+	Layers        []Layer `json:"layers"`
 
 	filepath string
 	fi       os.FileInfo
@@ -47,10 +47,12 @@ func (m *Manifest) Remove() error {
 
 func (m *Manifest) RemoveLayers() error {
 	for _, layer := range append(m.Layers, m.Config) {
-		if err := layer.Remove(); errors.Is(err, os.ErrNotExist) {
-			slog.Debug("layer does not exist", "digest", layer.Digest)
-		} else if err != nil {
-			return err
+		if layer.Digest != "" {
+			if err := layer.Remove(); errors.Is(err, os.ErrNotExist) {
+				slog.Debug("layer does not exist", "digest", layer.Digest)
+			} else if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -93,7 +95,7 @@ func ParseNamedManifest(n model.Name) (*Manifest, error) {
 	return &m, nil
 }
 
-func WriteManifest(name model.Name, config *Layer, layers []*Layer) error {
+func WriteManifest(name model.Name, config Layer, layers []Layer) error {
 	manifests, err := GetManifestPath()
 	if err != nil {
 		return err
